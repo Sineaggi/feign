@@ -1,5 +1,5 @@
 /**
- * Copyright 2012-2020 The Feign Authors
+ * Copyright 2012-2021 The Feign Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,7 +17,6 @@ import feign.InvocationHandlerFactory.MethodHandler;
 import org.jvnet.animal_sniffer.IgnoreJRERequirement;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
@@ -26,6 +25,10 @@ import java.lang.reflect.Method;
  */
 @IgnoreJRERequirement
 final class DefaultMethodHandler implements MethodHandler {
+
+  private static final LookupSupportProvider lookupSupportProvider =
+      LookupSupportProviderImpl.provider();
+
   // Uses Java 7 MethodHandle based reflection. As default methods will only exist when
   // run on a Java 8 JVM this will not affect use on legacy JVMs.
   // When Feign upgrades to Java 7, remove the @IgnoreJRERequirement annotation.
@@ -37,9 +40,7 @@ final class DefaultMethodHandler implements MethodHandler {
   public DefaultMethodHandler(Method defaultMethod) {
     try {
       Class<?> declaringClass = defaultMethod.getDeclaringClass();
-      Field field = Lookup.class.getDeclaredField("IMPL_LOOKUP");
-      field.setAccessible(true);
-      Lookup lookup = (Lookup) field.get(null);
+      Lookup lookup = lookupSupportProvider.lookup(defaultMethod);
 
       this.unboundHandle = lookup.unreflectSpecial(defaultMethod, declaringClass);
     } catch (NoSuchFieldException ex) {
